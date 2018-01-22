@@ -48,8 +48,8 @@ type alert struct {
 }
 
 func (a alert) String() string {
-	return fmt.Sprintf("*%s*\n%s\n>Severity: %s\n>Program: %s\n>Host: %s\n>Hits: %d\n>Timestamp: %s",
-		a.Type, a.Severity, a.Program, a.Host, a.Hits, a.Timestamp)
+	return fmt.Sprintf("*%s*\n>Severity: %s\n>Program: %s\n>Host: %s\n>Hits: %d\n>Timestamp: %s\n>Message: %s",
+		a.Type, a.Severity, a.Program, a.Host, a.Hits, a.Timestamp, a.Message)
 }
 
 func (s *BotServer) handlePost(w http.ResponseWriter, r *http.Request) {
