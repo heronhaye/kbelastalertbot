@@ -19,6 +19,7 @@ RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
 
 RUN mkdir -p $GOPATH/src/github.com/mmaxim
 RUN go get github.com/mmaxim/kbelastalertbot
+RUN mkdir /keybase-kbgitbot & chown -R keybase /keybase-kbelastalertbot
 
 COPY runbot.sh /
 
