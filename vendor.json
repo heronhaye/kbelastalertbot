@@ -1,0 +1,13 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "ku2gQYfLLrUGvGeGFirvGIrEA6Q=",
+			"path": "github.com/keybase/go-keybase-chat-bot/kbchat",
+			"revision": "2cabd8c29507875734ada8547b2fa1aa9c255e53",
+			"revisionTime": "2017-08-04T11:59:51Z"
+		}
+	],
+	"rootPath": "github.com/mmaxim/kbgitbot"
+}
