@@ -1,19 +1,3 @@
-# kbgitbot
-f
-dsds
-d
-d
-d
-d
-d
-d
-d
-d
-d
-d
-d
-ddd
-d
-d
-dd
-dd
+# ElastAlert Bot for Keybase Chat
+
+Send alerts from ElastAlert into a Keybase Chat bot.
