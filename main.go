@@ -37,19 +37,44 @@ func (s *BotServer) debug(msg string, args ...interface{}) {
 }
 
 type alert struct {
-	Team      string
-	Type      string `json:"alerttype"`
-	Host      string
-	Message   string
-	Hits      int    `json:"num_hits"`
-	Severity  string `json:"syslog_severity"`
-	Timestamp string `json:"syslog_timestamp"`
-	Program   string `json:"syslog_program"`
+	Team    string
+	Type    string `json:"alerttype"`
+	Host    string
+	Message string
+	Hits    int `json:"num_hits"`
+
+	RawSeverity     string `json:"severity"`
+	RawTimestamp    string `json:"timestamp"`
+	RawProgram      string `json:"program"`
+	SyslogSeverity  string `json:"syslog_severity"`
+	SyslogTimestamp string `json:"syslog_timestamp"`
+	SyslogProgram   string `json:"syslog_program"`
+}
+
+func (a alert) Severity() string {
+	if a.RawSeverity == "" {
+		return a.SyslogSeverity
+	}
+	return a.RawSeverity
+}
+
+func (a alert) Timestamp() string {
+	if a.RawTimestamp == "" {
+		return a.SyslogTimestamp
+	}
+	return a.RawTimestamp
+}
+
+func (a alert) Program() string {
+	if a.RawProgram == "" {
+		return a.SyslogProgram
+	}
+	return a.RawProgram
 }
 
 func (a alert) String() string {
 	return fmt.Sprintf("*%s*\n>Severity: %s\n>Program: %s\n>Host: %s\n>Hits: %d\n>Timestamp: %s\n>Message: %s",
-		a.Type, a.Severity, a.Program, a.Host, a.Hits, a.Timestamp, a.Message)
+		a.Type, a.Severity(), a.Program(), a.Host, a.Hits, a.Timestamp(), a.Message)
 }
 
 func (s *BotServer) handlePost(w http.ResponseWriter, r *http.Request) {
