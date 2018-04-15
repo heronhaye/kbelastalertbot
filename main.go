@@ -44,7 +44,7 @@ type alert struct {
 	Hits    int `json:"num_hits"`
 
 	RawSeverity     string `json:"severity"`
-	RawTimestamp    string `json:"timestamp"`
+	RawTimestamp    string `json:"time"`
 	RawProgram      string `json:"program"`
 	SyslogSeverity  string `json:"syslog_severity"`
 	SyslogTimestamp string `json:"syslog_timestamp"`
