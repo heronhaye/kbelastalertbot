@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/keybase/go-keybase-chat-bot/kbchat"
 )
@@ -72,9 +73,32 @@ func (a alert) Program() string {
 	return a.RawProgram
 }
 
+func (a alert) Subscribers() []string {
+	if strings.ToLower(a.Severity()) != "critical" {
+		return nil
+	}
+	var subscribers []string
+
+	switch a.Program() {
+	case "ratelimitd":
+		subscribers = []string{"modalduality"}
+	case "smsd":
+		subscribers = []string{"modalduality", "zapu"}
+	}
+	return subscribers
+}
+
 func (a alert) String() string {
-	return fmt.Sprintf("*%s*\n>Severity: %s\n>Program: %s\n>Host: %s\n>Hits: %d\n>Timestamp: %s\n>Message: %s",
-		a.Type, a.Severity(), a.Program(), a.Host, a.Hits, a.Timestamp(), a.Message)
+	return fmt.Sprintf("*%s*\n>Severity: %s\n>Program: %s\n>Host: %s\n>Hits: %d\n>Timestamp: %s\n>Message: %s\n>cc: %s",
+		a.Type, a.Severity(), a.Program(), a.Host, a.Hits, a.Timestamp(), a.Message, mentionString(a.Subscribers()))
+}
+
+func mentionString(users []string) string {
+	s := ""
+	for _, user := range users {
+		s += "@" + user + " "
+	}
+	return s
 }
 
 func (s *BotServer) handlePost(w http.ResponseWriter, r *http.Request) {
