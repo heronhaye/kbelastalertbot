@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -17,19 +18,22 @@ func main() {
 }
 
 type Options struct {
-	KeybaseLocation string
-	ListenPort      int
-	Channel         string
+	KeybaseLocation   string
+	ListenPort        int
+	Channel           string
+	SubscriptionsPath string
 }
 
 type BotServer struct {
-	opts Options
-	kbc  *kbchat.API
+	opts          Options
+	subscriptions *Subscriptions
+	kbc           *kbchat.API
 }
 
-func NewBotServer(opts Options) *BotServer {
+func NewBotServer(opts Options, subscriptions *Subscriptions) *BotServer {
 	return &BotServer{
-		opts: opts,
+		opts:          opts,
+		subscriptions: subscriptions,
 	}
 }
 
@@ -50,6 +54,18 @@ type alert struct {
 	SyslogSeverity  string `json:"syslog_severity"`
 	SyslogTimestamp string `json:"syslog_timestamp"`
 	SyslogProgram   string `json:"syslog_program"`
+}
+
+type Username string
+type Subscription struct {
+	All      []Username
+	Critical []Username
+}
+type Program string
+type Subscriptions map[Program]Subscription
+
+func (u Username) Mention() string {
+	return fmt.Sprintf("@%s", u)
 }
 
 func (a alert) Severity() string {
@@ -73,32 +89,40 @@ func (a alert) Program() string {
 	return a.RawProgram
 }
 
-func (a alert) Subscribers() []string {
-	if strings.ToLower(a.Severity()) != "critical" {
+func (a alert) subscribers(subscriptions *Subscriptions) []Username {
+	if subscriptions == nil {
 		return nil
 	}
-	var subscribers []string
 
-	switch a.Program() {
-	case "ratelimitd":
-		subscribers = []string{"modalduality"}
-	case "smsd":
-		subscribers = []string{"modalduality", "zapu"}
+	subscription, ok := (*subscriptions)[Program(a.Program())]
+	if !ok {
+		return nil
 	}
+
+	var subscribers []Username
+	if strings.ToLower(a.Severity()) == "critical" {
+		for _, subscriber := range subscription.Critical {
+			subscribers = append(subscribers, subscriber)
+		}
+	}
+	for _, subscriber := range subscription.All {
+		subscribers = append(subscribers, subscriber)
+	}
+
 	return subscribers
 }
 
-func (a alert) String() string {
-	return fmt.Sprintf("*%s*\n>Severity: %s\n>Program: %s\n>Host: %s\n>Hits: %d\n>Timestamp: %s\n>Message: %s\n>cc: %s",
-		a.Type, a.Severity(), a.Program(), a.Host, a.Hits, a.Timestamp(), a.Message, mentionString(a.Subscribers()))
-}
-
-func mentionString(users []string) string {
+func (a alert) SubscribersString(subscriptions *Subscriptions) string {
 	s := ""
-	for _, user := range users {
-		s += "@" + user + " "
+	for _, username := range a.subscribers(subscriptions) {
+		s += username.Mention() + " "
 	}
 	return s
+}
+
+func (a alert) String(subscriptions *Subscriptions) string {
+	return fmt.Sprintf("*%s*\n>Severity: %s\n>Program: %s\n>Host: %s\n>Hits: %d\n>Timestamp: %s\n>Message: %s\n>cc: %s",
+		a.Type, a.Severity(), a.Program(), a.Host, a.Hits, a.Timestamp(), a.Message, a.SubscribersString(subscriptions))
 }
 
 func (s *BotServer) handlePost(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +133,7 @@ func (s *BotServer) handlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.kbc.SendMessageByTeamName(a.Team, a.String(), &s.opts.Channel); err != nil {
+	if err := s.kbc.SendMessageByTeamName(a.Team, a.String(s.subscriptions), &s.opts.Channel); err != nil {
 		s.debug("failed to send message: %s", err.Error())
 	}
 }
@@ -132,9 +156,24 @@ func mainInner() int {
 	flag.StringVar(&opts.KeybaseLocation, "keybase", "keybase", "keybase command")
 	flag.StringVar(&opts.Channel, "channel", "alerts", "channel to send messages")
 	flag.IntVar(&opts.ListenPort, "port", 8080, "listen port")
+	flag.StringVar(&opts.SubscriptionsPath, "subscriptions-path", "", "config for subscriptions")
 	flag.Parse()
 
-	bs := NewBotServer(opts)
+	var subscriptions *Subscriptions = &Subscriptions{}
+	if len(opts.SubscriptionsPath) > 0 {
+		dat, err := ioutil.ReadFile(opts.SubscriptionsPath)
+		if err != nil {
+			fmt.Printf("Could not read subscriptions json file: %s\n", err.Error())
+			return 1
+		}
+		err = json.Unmarshal(dat, subscriptions)
+		if err != nil {
+			fmt.Printf("Could not parse JSON as subscriptions struct: %s\n", err.Error())
+			return 1
+		}
+	}
+
+	bs := NewBotServer(opts, subscriptions)
 	if err := bs.Start(); err != nil {
 		fmt.Printf("error running chat loop: %s\n", err.Error())
 	}

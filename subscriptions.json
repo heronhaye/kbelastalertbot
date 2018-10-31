@@ -1,0 +1,18 @@
+{
+    "ratelimitd": {
+        "all": ["zapu", "modalduality"],
+        "critical": []
+    },
+    "smsd": {
+        "all": ["zapu", "modalduality"],
+        "critical": []
+    },
+    "gocryptod": {
+        "all": ["zapu"],
+        "critical": []
+    },
+    "app.iced": {
+        "all": [],
+        "critical": ["modalduality"]
+    }
+}
